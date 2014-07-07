@@ -18,16 +18,20 @@ public class App
     public static void main( String[] args )
     {
     	try {
-			MongoClient mongo = new MongoClient("localhost", 27017);
-			DB db = mongo.getDB("testdb");
-			DBCollection table = db.getCollection("user");
-			BasicDBObject document = createCollectionObject();
-			table.insert(document);
+			MongoClient mongo = new MongoClient("ec2-54-81-150-163.compute-1.amazonaws.com", 27017);
+			DB db = mongo.getDB("blocksDB");
+			DBCollection table = db.getCollection("blocksCollection");
+//			BasicDBObject document = createCollectionObject();
+//			table.insert(document);
 			//
-			BasicDBObject searchQuery = new BasicDBObject();
-			searchQuery.put("name", "mkyong");
+			
+			DBCursor cursor = table.find().limit(10);
+			while(cursor.hasNext()){
+				BasicDBObject obj = (BasicDBObject) cursor.next();
+				obj.get("blocks");
+			}
 		 
-			DBCursor cursor = table.find(searchQuery);
+			//DBCursor cursor = table.find(searchQuery);
 		 
 			while (cursor.hasNext()) {
 				System.out.println(cursor.next());
