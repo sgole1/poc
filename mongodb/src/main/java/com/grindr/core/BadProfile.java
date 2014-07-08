@@ -101,7 +101,7 @@ public class BadProfile {
 				BasicDBObject profile) {
 
 			Integer profID = (Integer) profile.get("profID");
-			System.out.println("scanned profile id :" + profID);
+			//System.out.println("scanned profile id :" + profID);
 			ProfileVO1 profileVO = getAllBlockedOrFavPIDsByProfileId(table,
 					profID);
 			setBadBlockedProfileEntries(profile, profileVO);
@@ -125,8 +125,8 @@ public class BadProfile {
 				}
 				profileVO.getFavProfiles().removeAll(favProfileIds);
 				profileVO.badFavProfiles = profileVO.getFavProfiles();
-				System.out.println("Fav By profile ids not entered : "
-						+ profileVO.badFavProfiles);
+//				System.out.println("Fav By profile ids not entered : "
+//						+ profileVO.badFavProfiles);
 			}
 		}
 
@@ -145,8 +145,8 @@ public class BadProfile {
 			}
 				profileVO.getBlockedProfiles().removeAll(blockedProfileIds);
 				profileVO.badBlockedProfile = profileVO.getBlockedProfiles();
-				System.out.println("Blocked By profile ids not entered : "
-						+ profileVO.badBlockedProfile);
+//				System.out.println("Blocked By profile ids not entered : "
+//						+ profileVO.badBlockedProfile);
 			
 		}
 
