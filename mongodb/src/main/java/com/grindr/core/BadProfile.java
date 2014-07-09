@@ -1,12 +1,11 @@
 package com.grindr.core;
 
 import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
-import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -22,26 +21,70 @@ import com.mongodb.MongoClient;
  * Hello world!
  * 
  */
+/**
+ * @author Sumit
+ * 
+ */
 public class BadProfile {
+	private static int MAX_THREAD_COUNT = 10;
+	private static int MAX_RECORDS_TOBE_PROCESS = 100;
+	private static String DATABASE_HOSTNAME = "ec2-54-86-54-97.compute-1.amazonaws.com";
+	private static PrintWriter csvOutput = null;
+
 	public static void main(String[] args) {
 
-		Map<Integer, List<Integer>> data = new HashMap<Integer, List<Integer>>();
-		String outputFile = "users.csv";
-		// before we open the file check to see if it already exists
-		boolean alreadyExists = new File(outputFile).exists();
+		if (args.length == 3) {
+			DATABASE_HOSTNAME = args[0];
+			MAX_THREAD_COUNT = new Integer(args[1]);
+			MAX_RECORDS_TOBE_PROCESS = new Integer(args[2]);
+		}
+		MongoClient mongoClient = null;
 
-		MongoClient mongo = getConnection();
-		DB db = mongo.getDB("blocksDB");
-		DBCollection table = db.getCollection("blocksCollection");
-		getBadProfiles(table);
+		try {
+			initFileWriter();
+			mongoClient = getConnection();
+			DB db = mongoClient.getDB("blocksDB");
+			DBCollection table = db.getCollection("blocksCollection");
+			getBadProfiles(table);
+		} catch (Exception e) {
+			e.printStackTrace();
+
+		} finally {
+			mongoClient.close();
+			csvOutput.close();
+		}
 
 	}
 
+	/**
+	 * Create file
+	 */
+	private static void initFileWriter() {
+		String outputFile = "Bad_Profiles_Data" + System.currentTimeMillis()
+				+ ".csv";
+		// before we open the file check to see if it already exists
+
+		try {
+			csvOutput = new PrintWriter(new File(outputFile));
+			csvOutput.write("Id");
+			csvOutput.write("\t");
+			csvOutput.write("Missing Blocked-By");
+			csvOutput.write("\t");
+			csvOutput.write("Missing Fav-By");
+			csvOutput.write("\n");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	/**
+	 * Get mongodb connection
+	 */
 	private static MongoClient getConnection() {
 		MongoClient mongo = null;
 		try {
-			mongo = new MongoClient("ec2-54-86-54-97.compute-1.amazonaws.com",
-					27017);
+			mongo = new MongoClient(DATABASE_HOSTNAME, 27017);
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -49,29 +92,38 @@ public class BadProfile {
 		return mongo;
 	}
 
+	/**
+	 * Extract bad profiles
+	 * 
+	 * @param table
+	 *            : collection for which we want to extract the bad data
+	 */
+
 	private static void getBadProfiles(DBCollection table) {
 		System.out.println("Start time : "
 				+ (System.currentTimeMillis() / 1000));
 		Long startTime = System.currentTimeMillis() / 1000;
-		DBCursor profileIds = table.find();
-		ExecutorService executor = Executors.newFixedThreadPool(10);
-		int count = 0;
-		while (profileIds.hasNext()) {
-			BasicDBObject profile = (BasicDBObject) profileIds.next();
-			Profile p = new BadProfile().new Profile(table, profile);
-
-			executor.submit(p);
-
-			// return getBadEntryPerProfile(table, profile);
+		DBCursor profileIds = table.find().limit(MAX_RECORDS_TOBE_PROCESS);
+		ExecutorService executor = Executors
+				.newFixedThreadPool(MAX_THREAD_COUNT);
+		try {
+			while (profileIds.hasNext()) {
+				BasicDBObject profile = (BasicDBObject) profileIds.next();
+				Profile p = new BadProfile().new Profile(table, profile);
+				executor.submit(p);
+			}
+		} finally {
+			profileIds.close();
 		}
 		executor.shutdown();
 		while (!executor.isTerminated()) {
 
 		}
+
 		System.out.println("Finished all threads");
-		Long endTIme = System.currentTimeMillis() / 1000;
+		Long endTime = System.currentTimeMillis() / 1000;
 		System.out.println("End time : " + (System.currentTimeMillis() / 1000));
-		System.out.println("Total time taken : " + (startTime - endTIme) / 60);
+		System.out.println("Total time taken : " + (startTime - endTime) / 60);
 
 	}
 
@@ -88,11 +140,16 @@ public class BadProfile {
 		public void run() {
 			System.out.println("request submitted for thread"
 					+ Thread.currentThread().getName());
-			getBadEntryPerProfile(table, profile);
+			try {
+				getBadEntryPerProfile(table, profile);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 
 		}
 
 		/**
+		 * To get the bad profiles
 		 * @param table
 		 * @param profileIds
 		 * @return
@@ -104,9 +161,41 @@ public class BadProfile {
 			// System.out.println("scanned profile id :" + profID);
 			ProfileVO1 profileVO = getAllBlockedOrFavPIDsByProfileId(table,
 					profID);
-			setBadBlockedProfileEntries(profile, profileVO);
-			setBadFavProfileEntries(profile, profileVO);
+			if (profileVO != null) {
+				setBadBlockedProfileEntries(profile, profileVO);
+				setBadFavProfileEntries(profile, profileVO);
+				writeBadDataInFile(profileVO);
+			}
 			return profileVO;
+		}
+
+		/**
+		 * Write the Bad record in the file
+		 * @param profileVO
+		 */
+		private void writeBadDataInFile(ProfileVO1 profileVO) {
+
+			csvOutput.write(profileVO.profileId.toString());
+			StringBuilder badBlockedPIds = new StringBuilder();
+
+			for (Integer badBProfile : profileVO.badBlockedProfile) {
+				badBlockedPIds = badBlockedPIds.append(badBProfile.toString())
+						.append(",");
+			}
+
+			csvOutput.write("\t");
+			csvOutput.write(badBlockedPIds.toString());
+			StringBuilder badFavPIds = new StringBuilder();
+
+			for (Integer badFavProfile : profileVO.badFavProfiles) {
+				badFavPIds = badFavPIds.append(badFavProfile.toString())
+						.append(",");
+			}
+
+			csvOutput.write("\t");
+			csvOutput.write(badFavPIds.toString());
+			csvOutput.write("\n");
+
 		}
 
 		/**
@@ -139,7 +228,7 @@ public class BadProfile {
 			BasicDBList blockedByObjects = (BasicDBList) profile
 					.get("blocked_by");
 			List<Integer> blockedProfileIds = new ArrayList<Integer>();
-			if (profileVO.getBlockedProfiles() != null) {
+			if (blockedByObjects != null) {
 				for (Object obj : blockedByObjects) {
 					blockedProfileIds.add((Integer) obj);
 				}
@@ -165,30 +254,56 @@ public class BadProfile {
 
 			List<Integer> favouriteProfileIds = new ArrayList<Integer>();
 			List<Integer> blockedProfileIds = new ArrayList<Integer>();
-			if (profileIdsToBeScaned != null) {
-				while (profileIdsToBeScaned.hasNext()) {
-					DBObject profile = profileIdsToBeScaned.next();
-					BasicDBList blockedByObjects = (BasicDBList) profile
-							.get("blocks");
-					if (blockedByObjects != null
-							&& blockedByObjects.contains(profileId)) {
-						blockedProfileIds.add((Integer) profile.get("profID"));
-					}
-					BasicDBList favByObjects = (BasicDBList) profile
-							.get("favorites");
-
-					if (favByObjects != null
-							&& favByObjects.contains(profileId)) {
-						favouriteProfileIds
-								.add((Integer) profile.get("profID"));
+			try {
+				if (profileIdsToBeScaned != null) {
+					while (profileIdsToBeScaned.hasNext()) {
+						DBObject profile = profileIdsToBeScaned.next();
+						setBlockedProfiles(profileId, blockedProfileIds,
+								profile);
+						setFavProfiles(profileId, favouriteProfileIds, profile);
 					}
 				}
+				ProfileVO1 vo = new ProfileVO1();
+				if (blockedProfileIds.size() > 0
+						|| favouriteProfileIds.size() > 0) {
+					vo.blockedProfiles = blockedProfileIds;
+					vo.favProfiles = favouriteProfileIds;
+					vo.profileId = profileId;
+					return vo;
+				}
+			} finally {
+				profileIdsToBeScaned.close();
 			}
-			ProfileVO1 vo = new ProfileVO1();
-			vo.blockedProfiles = blockedProfileIds;
-			vo.favProfiles = favouriteProfileIds;
-			vo.profileId = profileId;
-			return vo;
+
+			return null;
+		}
+
+		/**
+		 * @param profileId
+		 * @param favouriteProfileIds
+		 * @param profile
+		 */
+		private void setFavProfiles(Integer profileId,
+				List<Integer> favouriteProfileIds, DBObject profile) {
+			BasicDBList favByObjects = (BasicDBList) profile.get("favorites");
+
+			if (favByObjects != null && favByObjects.contains(profileId)) {
+				favouriteProfileIds.add((Integer) profile.get("profID"));
+			}
+		}
+
+		/**
+		 * @param profileId
+		 * @param blockedProfileIds
+		 * @param profile
+		 */
+		private void setBlockedProfiles(Integer profileId,
+				List<Integer> blockedProfileIds, DBObject profile) {
+			BasicDBList blockedByObjects = (BasicDBList) profile.get("blocks");
+			if (blockedByObjects != null
+					&& blockedByObjects.contains(profileId)) {
+				blockedProfileIds.add((Integer) profile.get("profID"));
+			}
 		}
 
 	}
