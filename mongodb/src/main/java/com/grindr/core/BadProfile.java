@@ -122,9 +122,9 @@ public class BadProfile {
 		int count =0;
 		try {
 			while (profileIds.hasNext()) {
-				System.out.println("Total Profiles in process/processed::"+count++);
+				
 				BasicDBObject profile = (BasicDBObject) profileIds.next();
-				Profile p = new BadProfile().new Profile(table, profile);
+				Profile p = new BadProfile().new Profile(table, profile,count);
 				executor.submit(p);
 			}
 		} finally {
@@ -134,7 +134,6 @@ public class BadProfile {
 		while (!executor.isTerminated()) {
 
 		}
-
 		System.out.println("Finished all threads");
 		Long endTime = System.currentTimeMillis() / 1000;
 		System.out.println("End time : " + (System.currentTimeMillis() / 1000));
@@ -145,14 +144,17 @@ public class BadProfile {
 	class Profile implements Runnable {
 		DBCollection table;
 		BasicDBObject profile;
+		int count;
 
-		public Profile(DBCollection table, BasicDBObject profile) {
+		public Profile(DBCollection table, BasicDBObject profile, int count) {
 			this.table = table;
 			this.profile = profile;
+			this.count = count;
 		}
 
 		@Override
 		public void run() {
+			System.out.println("Total Profiles in process/processed::"+count++);
 			System.out.println("request submitted for thread"
 					+ Thread.currentThread().getName());
 			try {
