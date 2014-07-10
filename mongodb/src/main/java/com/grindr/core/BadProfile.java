@@ -122,9 +122,9 @@ public class BadProfile {
 		int count =0;
 		try {
 			while (profileIds.hasNext()) {
-				
+				System.out.println("Total Profiles in process/processed::"+count++);
 				BasicDBObject profile = (BasicDBObject) profileIds.next();
-				Profile p = new BadProfile().new Profile(table, profile,count);
+				Profile p = new BadProfile().new Profile(table, profile);
 				executor.submit(p);
 			}
 		} finally {
@@ -144,17 +144,15 @@ public class BadProfile {
 	class Profile implements Runnable {
 		DBCollection table;
 		BasicDBObject profile;
-		int count;
 
-		public Profile(DBCollection table, BasicDBObject profile, int count) {
+		public Profile(DBCollection table, BasicDBObject profile) {
 			this.table = table;
 			this.profile = profile;
-			this.count = count;
 		}
 
 		@Override
 		public void run() {
-			System.out.println("Total Profiles in process/processed::"+count++);
+			
 			System.out.println("request submitted for thread"
 					+ Thread.currentThread().getName());
 			try {
