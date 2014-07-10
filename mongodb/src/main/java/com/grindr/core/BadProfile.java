@@ -32,13 +32,9 @@ public class BadProfile {
 	private static int MAX_RECORDS_TOBE_PROCESS = 100;
 	private static String DATABASE_HOSTNAME = "ec2-54-86-54-97.compute-1.amazonaws.com";
 	private static PrintWriter csvOutput = null;
-	
+
 	public static void main(String[] args) {
-		 
-		MongoOptions options = new MongoOptions();
-		options.autoConnectRetry=true;
-		options.connectionsPerHost =999999999;
-		
+
 		if (args.length == 3) {
 			DATABASE_HOSTNAME = args[0];
 			MAX_THREAD_COUNT = new Integer(args[1]);
@@ -60,7 +56,7 @@ public class BadProfile {
 			mongoClient.close();
 			csvOutput.close();
 		}
-}
+	}
 
 	/**
 	 * Create file
@@ -88,10 +84,13 @@ public class BadProfile {
 	 * Get mongodb connection
 	 */
 	private static MongoClient getConnection() {
-		
+
 		MongoClient mongo = null;
+
+		MongoClientOptions option = new MongoClientOptions.Builder()
+				.autoConnectRetry(true).connectTimeout(999999).socketKeepAlive(true).build();
 		try {
-			mongo = new MongoClient(DATABASE_HOSTNAME, 27017);
+			mongo = new MongoClient(DATABASE_HOSTNAME, option);
 		} catch (UnknownHostException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -110,11 +109,20 @@ public class BadProfile {
 		System.out.println("Start time : "
 				+ (System.currentTimeMillis() / 1000));
 		Long startTime = System.currentTimeMillis() / 1000;
-		DBCursor profileIds = table.find();
+		DBCursor profileIds = null;
+		
+		if(MAX_RECORDS_TOBE_PROCESS == 0){
+			profileIds = table.find();
+		}else{
+			profileIds = table.find().limit(MAX_RECORDS_TOBE_PROCESS);
+		}
+		
 		ExecutorService executor = Executors
 				.newFixedThreadPool(MAX_THREAD_COUNT);
+		int count =0;
 		try {
 			while (profileIds.hasNext()) {
+				System.out.println("Total Profiles in process/processed::"+count++);
 				BasicDBObject profile = (BasicDBObject) profileIds.next();
 				Profile p = new BadProfile().new Profile(table, profile);
 				executor.submit(p);
@@ -157,6 +165,7 @@ public class BadProfile {
 
 		/**
 		 * To get the bad profiles
+		 * 
 		 * @param table
 		 * @param profileIds
 		 * @return
@@ -178,6 +187,7 @@ public class BadProfile {
 
 		/**
 		 * Write the Bad record in the file
+		 * 
 		 * @param profileVO
 		 */
 		private void writeBadDataInFile(ProfileVO1 profileVO) {
