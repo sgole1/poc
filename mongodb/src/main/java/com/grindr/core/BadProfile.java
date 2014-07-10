@@ -53,8 +53,7 @@ public class BadProfile {
 			mongoClient.close();
 			csvOutput.close();
 		}
-
-	}
+}
 
 	/**
 	 * Create file
@@ -103,7 +102,7 @@ public class BadProfile {
 		System.out.println("Start time : "
 				+ (System.currentTimeMillis() / 1000));
 		Long startTime = System.currentTimeMillis() / 1000;
-		DBCursor profileIds = table.find().limit(MAX_RECORDS_TOBE_PROCESS);
+		DBCursor profileIds = table.find();
 		ExecutorService executor = Executors
 				.newFixedThreadPool(MAX_THREAD_COUNT);
 		try {
