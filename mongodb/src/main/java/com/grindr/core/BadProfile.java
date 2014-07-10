@@ -121,7 +121,7 @@ public class BadProfile {
 		int count =0;
 		try {
 			while (profileIds.hasNext()) {
-				System.out.println("Total Profiles in process/processed::"+count++);
+				//System.out.println("Total Profiles in process/processed::"+count++);
 				BasicDBObject profile = (BasicDBObject) profileIds.next();
 				Profile p = new BadProfile().new Profile(table, profile);
 				executor.submit(p);
@@ -153,8 +153,8 @@ public class BadProfile {
 		@Override
 		public void run() {
 			
-			System.out.println("request submitted for thread"
-					+ Thread.currentThread().getName());
+//			System.out.println("request submitted for thread"
+//					+ Thread.currentThread().getName());
 			try {
 				getBadEntryPerProfile(table, profile);
 			} catch (Exception e) {
