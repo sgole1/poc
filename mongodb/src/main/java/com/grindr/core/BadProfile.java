@@ -88,7 +88,7 @@ public class BadProfile {
 		MongoClient mongo = null;
 
 		MongoClientOptions option = new MongoClientOptions.Builder()
-				.autoConnectRetry(true).connectTimeout(999999).socketKeepAlive(true).build();
+				.autoConnectRetry(true).connectTimeout(999999999).socketKeepAlive(true).build();
 		try {
 			mongo = new MongoClient(DATABASE_HOSTNAME, option);
 		} catch (UnknownHostException e) {
