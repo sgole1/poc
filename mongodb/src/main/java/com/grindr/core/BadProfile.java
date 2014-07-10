@@ -16,6 +16,8 @@ import com.mongodb.DBCollection;
 import com.mongodb.DBCursor;
 import com.mongodb.DBObject;
 import com.mongodb.MongoClient;
+import com.mongodb.MongoClientOptions;
+import com.mongodb.MongoOptions;
 
 /**
  * Hello world!
@@ -30,9 +32,13 @@ public class BadProfile {
 	private static int MAX_RECORDS_TOBE_PROCESS = 100;
 	private static String DATABASE_HOSTNAME = "ec2-54-86-54-97.compute-1.amazonaws.com";
 	private static PrintWriter csvOutput = null;
-
+	
 	public static void main(String[] args) {
-
+		 
+		MongoOptions options = new MongoOptions();
+		options.autoConnectRetry=true;
+		options.connectionsPerHost =999999999;
+		
 		if (args.length == 3) {
 			DATABASE_HOSTNAME = args[0];
 			MAX_THREAD_COUNT = new Integer(args[1]);
@@ -50,6 +56,7 @@ public class BadProfile {
 			e.printStackTrace();
 
 		} finally {
+			System.out.println("Finally block: connections closed");
 			mongoClient.close();
 			csvOutput.close();
 		}
@@ -81,6 +88,7 @@ public class BadProfile {
 	 * Get mongodb connection
 	 */
 	private static MongoClient getConnection() {
+		
 		MongoClient mongo = null;
 		try {
 			mongo = new MongoClient(DATABASE_HOSTNAME, 27017);
