@@ -52,8 +52,6 @@ public class BadProfile {
 			e.printStackTrace();
 
 		} finally {
-			System.out.println("Finally block: connections closed");
-			mongoClient.close();
 			csvOutput.close();
 		}
 	}
@@ -99,6 +97,7 @@ public class BadProfile {
 	}
 
 	/**
+	 * 
 	 * Extract bad profiles
 	 * 
 	 * @param table
@@ -106,8 +105,8 @@ public class BadProfile {
 	 */
 
 	private static void getBadProfiles(DBCollection table) {
-		System.out.println("Start time : "
-				+ (System.currentTimeMillis() / 1000));
+//		System.out.println("Start time : "
+//				+ (System.currentTimeMillis() / 1000));
 		Long startTime = System.currentTimeMillis() / 1000;
 		DBCursor profileIds = null;
 		
@@ -150,6 +149,7 @@ public class BadProfile {
 			this.profile = profile;
 		}
 
+		
 		@Override
 		public void run() {
 			
