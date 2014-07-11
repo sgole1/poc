@@ -105,8 +105,8 @@ public class BadProfile {
 	 */
 
 	private static void getBadProfiles(DBCollection table) {
-//		System.out.println("Start time : "
-//				+ (System.currentTimeMillis() / 1000));
+		System.out.println("Start time : "
+				+ (System.currentTimeMillis() / 1000));
 		Long startTime = System.currentTimeMillis() / 1000;
 		DBCursor profileIds = null;
 		
@@ -268,7 +268,6 @@ public class BadProfile {
 					list)));
 			textSearch.put("$or", obj);
 			DBCursor profileIdsToBeScaned = table.find(textSearch);
-
 			List<Integer> favouriteProfileIds = new ArrayList<Integer>();
 			List<Integer> blockedProfileIds = new ArrayList<Integer>();
 			try {
